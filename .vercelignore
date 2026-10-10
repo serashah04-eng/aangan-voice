@@ -1,0 +1,7 @@
+# Never upload local secrets or eval output (quotes callers verbatim).
+.env
+.env.*
+!.env.example
+eval/reports/
+node_modules/
+.next/

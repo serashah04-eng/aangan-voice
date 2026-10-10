@@ -1,0 +1,20 @@
+node_modules/
+.next/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+coverage/
+*.log
+.DS_Store
+
+# Secrets: every .env file except the documented template.
+.env
+.env*
+!.env.example
+
+# Eval output and cache quote callers verbatim (incl. volunteered budgets) — keep out of git.
+eval/reports/
+eval/cache/
+
+# Internal pricing material must never enter this repo.
+pricing.md
