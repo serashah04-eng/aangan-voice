@@ -37,7 +37,7 @@ export const costConfig = {
    * Vaani AI telephony + voice, per minute, in INR. Observed on the account dashboard on 2026-10-10
    * (one 1-minute call cost 0.65). Replace with Vaani's quoted rate when confirmed.
    */
-  telephonyInrPerMinute: 0.65,
+  telephonyInrPerMinute: 4.92, // confirmed by the owner 2026-10-10 (Vaani agent page estimate)
   /** Telegram Bot API is free; Resend's free tier covers our volume. */
   notificationUsdPerMessage: { telegram: 0, email: 0 },
 } as const;

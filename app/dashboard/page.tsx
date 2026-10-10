@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Aangan Dashboard', robots: { index: false } };
 
 const RANGES = [7, 30, 90] as const;
+const DEFAULT_DAYS = 90;
 const pct = (x: number | null) => (x === null ? '—' : `${Math.round(x * 100)}%`);
 const num = (x: number | null, d = 0) => (x === null ? '—' : x.toFixed(d));
 const inr = (usd: number | null, fx: number) => (usd === null ? '—' : `₹ ${(usd * fx).toLocaleString('en-IN', { maximumFractionDigits: usd * fx < 10 ? 2 : 0 })}`);
@@ -25,7 +26,7 @@ function Tile({ label, value, sub }: { label: string; value: string; sub?: strin
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ days?: string }> }) {
   const { days: daysParam } = await searchParams;
-  const days = RANGES.includes(Number(daysParam) as (typeof RANGES)[number]) ? Number(daysParam) : 30;
+  const days = RANGES.includes(Number(daysParam) as (typeof RANGES)[number]) ? Number(daysParam) : DEFAULT_DAYS;
   const now = new Date();
   const from = new Date(now.getTime() - (days - 1) * 86_400_000);
   from.setUTCHours(0, 0, 0, 0);

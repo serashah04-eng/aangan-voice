@@ -1,0 +1,22 @@
+name: Keep voice server awake
+
+# Render's free web service sleeps after ~15 minutes without traffic. A ping every 5 minutes keeps
+# the Vaani voice server warm so the first caller at any hour is answered immediately.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoints
+        run: |
+          set -u
+          for url in "${{ vars.VOICE_SERVER_URL }}/health" "https://aangan-phone-agent-puce.vercel.app/api/health"; do
+            if [ -n "$url" ] && [ "$url" != "/health" ]; then
+              code=$(curl -s -o /dev/null -m 60 -w "%{http_code}" "$url" || echo 000)
+              echo "$url -> $code"
+            fi
+          done

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { costConfig } from '../config/cost.config';
 import { computeDashboard, istDate, type DashData } from '../src/dashboard/metrics';
 import { createSession, safeEqual, verifySession } from '../src/dashboard/session';
 
@@ -56,7 +57,7 @@ describe('dashboard metrics (brief §7 Phase 5)', () => {
   it('rules vs model disagreements', () => expect(m.disagreements).toMatchObject({ compared: 3, count: 1 }));
   it('integration errors by service', () => expect(m.errors.byService).toEqual([['hubspot', 1]]));
   it('cost: model + telephony (minutes × configured rate) per call and per qualified lead', () => {
-    const telUsd = (4 * 5 * 0.65) / 88;
+    const telUsd = (4 * 5 * costConfig.telephonyInrPerMinute) / costConfig.usdToInrFx;
     expect(m.cost.window.llm).toBeCloseTo(0.02);
     expect(m.cost.window.telephony).toBeCloseTo(telUsd);
     expect(m.cost.perCall).toBeCloseTo((0.02 + telUsd) / 4);

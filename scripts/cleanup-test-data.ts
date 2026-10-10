@@ -22,7 +22,7 @@ const HS = { Authorization: `Bearer ${env('HUBSPOT_PRIVATE_APP_TOKEN')}` };
 const hubspotDelete = async (kind: 'contacts' | 'deals', id: string) => (await fetch(`https://api.hubapi.com/crm/v3/objects/${kind}/${id}`, { method: 'DELETE', headers: HS })).status;
 
 type Call = { id: string; lead_id: string | null; provider: string };
-const calls = await sb<Call[]>('GET', 'calls?provider=in.(vaani,demo)&select=id,lead_id,provider');
+const calls = await sb<Call[]>('GET', 'calls?provider=in.(vaani,demo,sample)&select=id,lead_id,provider');
 const leadIds = [...new Set(calls.map((c) => c.lead_id).filter(Boolean))] as string[];
 
 // 1. HubSpot ids stored on the test leads, plus the earlier live smoke-test records.

@@ -1,0 +1,47 @@
+# Render blueprint: the always-on Vaani BYOL voice server (free instance).
+# Secrets are NOT in this file — set them in the Render dashboard (Environment → add from .env).
+services:
+  - type: web
+    name: aangan-voice-server
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm install
+    startCommand: npm run voice:server
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.1-flash-lite
+      - key: HUBSPOT_PRIVATE_APP_TOKEN
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_DESIGNER_CHAT_ID
+        sync: false
+      - key: TELEGRAM_STUDIO_HEAD_CHAT_ID
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false
+      - key: DESIGNER_FALLBACK_EMAIL
+        sync: false
+      - key: STUDIO_HEAD_EMAIL
+        sync: false
+      - key: CALCOM_API_KEY
+        sync: false
+      - key: CALCOM_EVENT_TYPE_ID
+        sync: false
+      - key: VAANI_BYOL_TOKEN
+        sync: false
+      - key: APP_BASE_URL
+        value: https://aangan-phone-agent-puce.vercel.app
