@@ -30,25 +30,41 @@ export type Frame = Record<string, unknown>;
  * never reach the extractor, the stored transcript, or the slot picker.
  */
 export function latestUtterance(content: string): string {
-  const m = content.match(/(?:^|\n)User:[ \t]*([\s\S]*?)\s*\n?Assistant:\s*$/);
-  return (m ? m[1]! : content).trim();
+  return parseUserContent(content).text;
 }
 
-/** What the caller said since the agent last spoke (consecutive duplicates removed). */
-export function newCallerText(transcript: VaaniMessage[]): string {
+/** Greedy lead so the LAST "User:" line before the final "Assistant:" wins. */
+function parseUserContent(content: string): { text: string; flattened: boolean } {
+  const m = content.match(/^[\s\S]*?(?:^|\n)User:[ \t]*((?:(?!\nUser:)[\s\S])*?)\s*\n?Assistant:\s*$/);
+  return m ? { text: m[1]!.trim(), flattened: true } : { text: content.trim(), flattened: false };
+}
+
+/**
+ * What the caller said since the agent last spoke (consecutive duplicates removed).
+ * Pass `previous` (the user messages seen on the last turn) to handle Vaani's voice mode, where
+ * the transcript is a CUMULATIVE list of user messages: only the messages beyond the ones already
+ * handled are new. Chat mode sends one flattened message each turn and needs no history.
+ */
+export function newCallerText(transcript: VaaniMessage[], previous: string[] = []): { text: string; seen: string[] } {
   const lastAssistant = transcript.map((m) => m.role).lastIndexOf('assistant');
-  const users = transcript
+  const parsed = transcript
     .slice(lastAssistant + 1)
     .filter((m) => m.role === 'user')
-    .map((m) => latestUtterance(m.content))
-    .filter(Boolean);
-  return users.filter((u, i) => u !== users[i - 1]).join(' ');
+    .map((m) => parseUserContent(m.content))
+    .filter((p) => p.text);
+  const users = parsed.map((p) => p.text).filter((u, i, a) => u !== a[i - 1]);
+  const flattened = parsed.some((p) => p.flattened);
+  const cumulative = !flattened && previous.length > 0 && users.length >= previous.length && previous.every((p, i) => users[i] === p);
+  const fresh = cumulative ? users.slice(previous.length) : users;
+  return { text: fresh.join(' '), seen: users };
 }
 
 export class ByolConnection {
   private session: CallSession | null = null;
   private queue: Promise<void> = Promise.resolve();
   private latestId = -1;
+  /** User messages already handled (voice mode sends the whole list every turn). */
+  private seenUsers: string[] = [];
   private closed = false;
 
   constructor(
@@ -100,7 +116,8 @@ export class ByolConnection {
   private async handle(req: VaaniTurnRequest): Promise<void> {
     if (this.closed) return;
     const session = await this.ensureSession(req);
-    const said = newCallerText(req.transcript ?? []);
+    const { text: said, seen } = newCallerText(req.transcript ?? [], this.seenUsers);
+    this.seenUsers = seen;
     if (!said) {
       if (req.response_id === this.latestId) this.send({ response_type: 'response', response_id: req.response_id, content: '', content_complete: true });
       return;

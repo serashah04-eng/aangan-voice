@@ -70,7 +70,9 @@ describe('Vaani BYOL protocol', () => {
       'User: The second one please.\nAssistant:',
     ].join('\n\n');
     expect(latestUtterance(blob)).toBe('The second one please.');
-    expect(newCallerText([sys, { role: 'user', content: blob }])).toBe('The second one please.');
+    expect(newCallerText([sys, { role: 'user', content: blob }]).text).toBe('The second one please.');
+    // Several "User:" lines in the history: only the last one (right before "Assistant:") counts.
+    expect(latestUtterance('User: first thing\nAssistant: ok\nUser: the real latest\nAssistant:')).toBe('the real latest');
     // The slot picker must see only that sentence, not the prompt's stray "yes" / "first".
     expect(pickSlot(latestUtterance(blob), [{ start: 'a', end: 'a' }, { start: 'b', end: 'b' }, { start: 'c', end: 'c' }])).toBe(1);
   });
@@ -80,8 +82,25 @@ describe('Vaani BYOL protocol', () => {
   });
 
   it('extracts only what the caller said since the agent last spoke (de-duplicated)', () => {
-    expect(newCallerText([sys, { role: 'assistant', content: 'Hi' }, { role: 'user', content: 'What is this call regarding?' }, { role: 'user', content: 'What is this call regarding?' }])).toBe('What is this call regarding?');
-    expect(newCallerText([sys, { role: 'user', content: 'a' }, { role: 'assistant', content: 'b' }, { role: 'user', content: 'c' }, { role: 'user', content: 'd' }])).toBe('c d');
+    expect(newCallerText([sys, { role: 'assistant', content: 'Hi' }, { role: 'user', content: 'What is this call regarding?' }, { role: 'user', content: 'What is this call regarding?' }]).text).toBe('What is this call regarding?');
+    expect(newCallerText([sys, { role: 'user', content: 'a' }, { role: 'assistant', content: 'b' }, { role: 'user', content: 'c' }, { role: 'user', content: 'd' }]).text).toBe('c d');
+  });
+
+  it('voice mode: a CUMULATIVE list of user messages yields only the new speech each turn', () => {
+    const u = (content: string): VaaniMessage => ({ role: 'user', content });
+    let seen: string[] = [];
+    const turn = (msgs: VaaniMessage[]) => {
+      const r = newCallerText([sys, ...msgs], seen);
+      seen = r.seen;
+      return r.text;
+    };
+    expect(turn([u('My name is Sarah, 3BHK in Kalyani Nagar.')])).toBe('My name is Sarah, 3BHK in Kalyani Nagar.');
+    expect(turn([u('My name is Sarah, 3BHK in Kalyani Nagar.'), u('Getting possession next week.')])).toBe('Getting possession next week.');
+    expect(turn([u('My name is Sarah, 3BHK in Kalyani Nagar.'), u('Getting possession next week.'), u('Yes, execution too.'), u('Yes, execution too.')])).toBe('Yes, execution too.');
+    // Flattened chat mode must still accept a repeated sentence ("Yes" twice).
+    seen = [];
+    expect(turn([u('x\nUser: Yes\nAssistant:')])).toBe('Yes');
+    expect(turn([u('y\nUser: Yes\nAssistant:')])).toBe('Yes');
   });
 });
 
