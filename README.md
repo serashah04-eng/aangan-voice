@@ -12,6 +12,19 @@ Answers every inbound call to Aangan Studio, 24/7, in English and Hindi. It qual
 | 4. Voice (Vaani AI) | Built and tested. Goes live once the BYOL socket is reachable (see below) |
 | 5. Dashboard | Done and deployed: https://aangan-phone-agent-puce.vercel.app/dashboard |
 
+## Live links
+
+| What | Where |
+|---|---|
+| Talk to the agent (web call, any hour, free) | https://aangan-phone-agent-puce.vercel.app/talk |
+| Dashboard (password) | https://aangan-phone-agent-puce.vercel.app/dashboard |
+| Health check | https://aangan-phone-agent-puce.vercel.app/api/health |
+| Code | https://github.com/serashah04-eng/aangan-voice |
+
+**Calling hours.** Calls that **Vaani places** (outbound) are limited by Vaani to 08:00–20:00 IST (TRAI rule). Calls that **customers make** (web call on `/talk`, or an inbound number if one is added) are not.
+
+**Still needed for true 24/7.** The voice server (`npm run voice:server`) must be running somewhere always-on and reachable as `wss://`. For the demo it runs on a laptop behind a Cloudflare quick tunnel. Deploy it to an always-on Node host for production, then put its `wss://…/chat/stream` URL in the agent's BYOL setting.
+
 ## Voice (Phase 4)
 
 **How a call works**

@@ -9,8 +9,9 @@ export default function Home() {
         Backend for Aangan Studio&apos;s AI phone enquiry line. Call handling, qualification, designer handoffs and CRM sync run
         server-side.
       </p>
-      <p>
-        <a href="/dashboard" className="button" style={{ textDecoration: 'none', display: 'inline-block' }}>Open dashboard</a>
+      <p style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <a href="/talk" className="button" style={{ textDecoration: 'none', display: 'inline-block' }}>Talk to the agent</a>
+        <a href="/dashboard" className="chip" style={{ padding: '10px 14px' }}>Open dashboard</a>
       </p>
       <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 32 }}>Rules config v{RULES_CONFIG_VERSION}</p>
     </main>
