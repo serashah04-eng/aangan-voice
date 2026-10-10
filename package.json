@@ -18,7 +18,8 @@
     "seed:demo": "tsx scripts/seed-demo.ts",
     "simulate": "tsx scripts/simulate.ts",
     "voice:server": "tsx scripts/voice-server.ts",
-    "call:me": "tsx scripts/call-me.ts"
+    "call:me": "tsx scripts/call-me.ts",
+    "cleanup:test": "tsx scripts/cleanup-test-data.ts"
   },
   "dependencies": {
     "@google/genai": "^2.28.0",
