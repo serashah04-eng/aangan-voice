@@ -122,7 +122,7 @@ export class CallSession {
    */
   static async start(deps: SessionDeps, init: SessionInit): Promise<{ session: CallSession; opening: string }> {
     let resumedFrom: { id: string; transcript: Transcript; startedAt: string } | undefined;
-    if (init.callerPhone && !init.callerPhone.startsWith('unknown')) {
+    if (init.callerPhone && !init.callerPhone.startsWith('+999')) {
       try {
         const prev = await findResumableCall(deps.store, init.callerPhone, deps.now?.() ?? new Date());
         if (prev && prev.id !== init.callId) {

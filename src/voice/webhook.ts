@@ -1,6 +1,6 @@
 import { costConfig } from '../../config/cost.config';
 import type { Store } from '../adapters/store/types';
-import { callIdFor } from './ids';
+import { callIdFor, placeholderPhoneFor } from './ids';
 
 /**
  * Vaani call-lifecycle webhooks (docs: guides/webhook-setup). Stored against the same calls row
@@ -26,13 +26,13 @@ export async function handleVaaniEvent(store: Store, ev: VaaniEvent, now: Date =
   if (!room || typeof ev.event !== 'string') return { handled: false, note: 'no room/call id' };
   const id = callIdFor(room);
   const existing = await store.getCall(id);
-  const phone = existing?.caller_phone_e164 ?? (ev.phone_number?.trim() || `unknown:${room}`);
+  const phone = existing?.caller_phone_e164 ?? (ev.phone_number?.trim() || placeholderPhoneFor(room));
 
   switch (ev.event) {
     case 'call_started':
       if (!existing) {
         await store.saveCall({ id, provider: 'vaani', provider_call_id: room, caller_phone_e164: phone, status: 'in_progress', started_at: now.toISOString() });
-      } else if (existing.caller_phone_e164.startsWith('unknown') && ev.phone_number) {
+      } else if (existing.caller_phone_e164.startsWith('+999') && ev.phone_number) {
         await store.saveCall({ id, caller_phone_e164: ev.phone_number.trim() });
       }
       return { handled: true, callId: id };

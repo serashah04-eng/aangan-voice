@@ -1,7 +1,7 @@
 import type { Store } from '../adapters/store/types';
 import { CallSession, type SessionDeps } from '../dialogue/session';
 import { logger } from '../lib/logger';
-import { callIdFor } from './ids';
+import { callIdFor, placeholderPhoneFor } from './ids';
 
 /**
  * Vaani "Bring Your Own LLM" protocol, one instance per call/WebSocket (docs: guides/byol).
@@ -23,10 +23,25 @@ export type VaaniTurnRequest = {
 };
 export type Frame = Record<string, unknown>;
 
+/**
+ * Vaani can deliver the turn as ONE big `user` message: its whole system prompt, the running
+ * chat history, and the newest line as `User: <what they said>\nAssistant:` at the very end.
+ * Only that final line is the caller's new speech; everything else is prompt/history and must
+ * never reach the extractor, the stored transcript, or the slot picker.
+ */
+export function latestUtterance(content: string): string {
+  const m = content.match(/(?:^|\n)User:[ \t]*([\s\S]*?)\s*\n?Assistant:\s*$/);
+  return (m ? m[1]! : content).trim();
+}
+
 /** What the caller said since the agent last spoke (consecutive duplicates removed). */
 export function newCallerText(transcript: VaaniMessage[]): string {
   const lastAssistant = transcript.map((m) => m.role).lastIndexOf('assistant');
-  const users = transcript.slice(lastAssistant + 1).filter((m) => m.role === 'user').map((m) => m.content.trim()).filter(Boolean);
+  const users = transcript
+    .slice(lastAssistant + 1)
+    .filter((m) => m.role === 'user')
+    .map((m) => latestUtterance(m.content))
+    .filter(Boolean);
   return users.filter((u, i) => u !== users[i - 1]).join(' ');
 }
 
@@ -75,7 +90,9 @@ export class ByolConnection {
         /* fall through */
       }
     }
-    const { session } = await CallSession.start(this.deps, { callId, callerPhone: phone || `unknown:${this.providerCallId}`, providerCallId: this.providerCallId });
+    // A webhook may have stored a placeholder before the number was known — never use that as a real number.
+    if (phone.startsWith('unknown')) phone = '';
+    const { session } = await CallSession.start(this.deps, { callId, callerPhone: phone || placeholderPhoneFor(this.providerCallId), providerCallId: this.providerCallId });
     this.session = session;
     return session;
   }

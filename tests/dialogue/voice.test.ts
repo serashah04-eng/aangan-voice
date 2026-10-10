@@ -3,7 +3,8 @@ import { rulesConfig } from '../../config/rules.config';
 import { MockCalendar } from '../../src/adapters/calendar/mock';
 import { MemoryStore } from '../../src/adapters/store/memory';
 import { setLogSink } from '../../src/lib/logger';
-import { ByolConnection, newCallerText, type Frame, type VaaniMessage } from '../../src/voice/byol';
+import { pickSlot } from '../../src/dialogue/session';
+import { ByolConnection, latestUtterance, newCallerText, type Frame, type VaaniMessage } from '../../src/voice/byol';
 import { callIdFor } from '../../src/voice/ids';
 import { handleVaaniEvent } from '../../src/voice/webhook';
 import { casesById } from '../fixtures/cases';
@@ -60,6 +61,22 @@ describe('Vaani BYOL protocol', () => {
     await conn.onFrame(JSON.stringify({ response_type: 'ping_pong' }));
     await conn.onFrame('not json');
     expect(frames).toEqual([]);
+  });
+
+  it("Vaani's flattened-prompt delivery: only the final 'User: …' line is the caller's speech", () => {
+    const blob = [
+      '### Sentiment Adaptation\n- **Active Listening**: be concise. Say yes to first-time callers.',
+      '[16:54:03] USER: We would like it done by March.\n\n[16:54:19] AGENT: I have three slots: first, second or third?',
+      'User: The second one please.\nAssistant:',
+    ].join('\n\n');
+    expect(latestUtterance(blob)).toBe('The second one please.');
+    expect(newCallerText([sys, { role: 'user', content: blob }])).toBe('The second one please.');
+    // The slot picker must see only that sentence, not the prompt's stray "yes" / "first".
+    expect(pickSlot(latestUtterance(blob), [{ start: 'a', end: 'a' }, { start: 'b', end: 'b' }, { start: 'c', end: 'c' }])).toBe(1);
+  });
+
+  it('a plain short user message passes through unchanged', () => {
+    expect(latestUtterance('I want to redo my flat.')).toBe('I want to redo my flat.');
   });
 
   it('extracts only what the caller said since the agent last spoke (de-duplicated)', () => {

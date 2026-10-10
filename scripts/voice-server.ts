@@ -31,9 +31,16 @@ try {
 }
 const outbox = buildOutboxDeps();
 
+/**
+ * Copy-paste artefacts around the token are ignored: surrounding whitespace, and a single leading
+ * "=" (copying a whole `VAANI_BYOL_TOKEN=…` line from .env.local). The 48 real characters must
+ * still match exactly.
+ */
 function authorised(header: string | undefined): boolean {
+  const raw = (header ?? '').trim().replace(/^(Bearer\s+)=/i, '$1');
+  const got = raw;
   const want = `Bearer ${TOKEN}`;
-  return !!header && header.length === want.length && timingSafeEqual(Buffer.from(header), Buffer.from(want));
+  return !!got && got.length === want.length && timingSafeEqual(Buffer.from(got), Buffer.from(want));
 }
 
 const http = createServer((req, res) => {
@@ -47,7 +54,21 @@ const wss = new WebSocketServer({ noServer: true });
 
 http.on('upgrade', (req, socket, head) => {
   const path = (req.url ?? '').split('?')[0]!;
-  if (!path.startsWith('/chat/stream') || !authorised(req.headers.authorization)) {
+  const auth = req.headers.authorization;
+  if (!path.startsWith('/chat/stream') || !authorised(auth)) {
+    // Never log the token itself — only whether one was sent and how it differs in shape.
+    const sent = auth ? auth.replace(/^Bearer\s+/i, '') : '';
+    const extra = sent.length === TOKEN.length + 1 ? (sent.startsWith(TOKEN) ? 'suffix' : sent.endsWith(TOKEN) ? 'prefix' : 'no') : null;
+    const extraCode = extra === 'suffix' ? sent.codePointAt(sent.length - 1) : extra === 'prefix' ? sent.codePointAt(0) : null;
+    logger.warn('voice.upgrade_refused', {
+      extraCharacter: extra, // 'suffix' / 'prefix' = our token plus one extra char at that end; 'no' = differs inside
+      extraCharCode: extraCode, // the code of that EXTRA char only (not part of the token)
+      path: path.slice(0, 60),
+      hadAuthHeader: !!auth,
+      scheme: auth?.split(' ')[0] ?? null,
+      sentTokenLength: auth ? auth.replace(/^Bearer\s+/i, '').length : 0,
+      expectedTokenLength: TOKEN.length,
+    });
     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
     socket.destroy();
     return;
